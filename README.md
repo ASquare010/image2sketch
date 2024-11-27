@@ -9,6 +9,10 @@ This repository takes an image as input and outputs a greyscale "sketch" of the 
 - Gpu docker container setup
 - PreFlask endpoint setup
 
+# Architecture
+![Alt text](assets/1.png)
+![Alt text](assets/2.png)
+
 # Inputs and Outputs for Flask-endpoint
 ##Input
  - Image File: Upload an image file (.png).
