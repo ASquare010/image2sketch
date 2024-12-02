@@ -132,8 +132,8 @@ def process():
 
     # Run the image processing command
     command = [
-        r"D:\Git\image2sketch\.venv\Scripts\python.exe", "src/test_dir.py",
-        # "python3", "src/test_dir.py",
+        # r"D:\Git\image2sketch\.venv\Scripts\python.exe", "src/test_dir.py",
+        "python3", "src/test_dir.py",
         "--name", "semi_unpair",
         "--model", "unpaired",
         "--epoch", "100",
