@@ -5,9 +5,9 @@ from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['RESULT_FOLDER'] = 'results/semi_unpair/dir_free/'
-app.config['DATASET_FOLDER'] = 'datasets/ref_unpair/'
+app.config['UPLOAD_FOLDER'] = 'src/uploads'
+app.config['RESULT_FOLDER'] = 'src/results/semi_unpair/dir_free/'
+app.config['DATASET_FOLDER'] = 'src/datasets/ref_unpair/'
 
 # Ensure directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -132,8 +132,8 @@ def process():
 
     # Run the image processing command
     command = [
-        # r"D:\Git\ing2skch\.venv\Scripts\python.exe", "test_dir.py",
-        "python3", "test_dir.py",
+        r"D:\Git\image2sketch\.venv\Scripts\python.exe", "src/test_dir.py",
+        # "python3", "src/test_dir.py",
         "--name", "semi_unpair",
         "--model", "unpaired",
         "--epoch", "100",

@@ -35,8 +35,8 @@ class UnpairedModel(BaseModel):
         if self.isTrain:  # define a discriminator; conditional GANs need to take both input and output images; Therefore, #channels for D is input_nc + output_nc
             self.netD = networks.define_D(1, opt.ndf, opt.netD,
                                           opt.n_layers_D, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
-            self.styletps = networks.define_styletps(init_weights_='./checkpoints/contrastive_pretrained.pth', gpu_ids_=self.gpu_ids,shape=False)
-            self.HED = networks.define_HED(init_weights_='./checkpoints/network-bsds500.pytorch', gpu_ids_=self.gpu_ids)
+            self.styletps = networks.define_styletps(init_weights_='./src/checkpoints/contrastive_pretrained.pth', gpu_ids_=self.gpu_ids,shape=False)
+            self.HED = networks.define_HED(init_weights_='./src/checkpoints/network-bsds500.pytorch', gpu_ids_=self.gpu_ids)
 
         if self.isTrain:  # define discriminators
             self.netD_A = networks.define_D(opt.output_nc, opt.ndf, opt.netD,

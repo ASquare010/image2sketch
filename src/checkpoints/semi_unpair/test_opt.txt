@@ -1,9 +1,9 @@
 ----------------- Options ---------------
              aspect_ratio: 1.0                           
                batch_size: 4                             
-          checkpoints_dir: ./checkpoints                 
+          checkpoints_dir: ./src/checkpoints             
                 crop_size: 512                           
-                 dataroot: uploads\750e0782-e713-4835-a8a5-fd17087b482e	[default: None]
+                 dataroot: src/uploads\dd62bacc-8e94-4bf2-8190-9efe8827a1e8	[default: None]
              dataset_mode: unaligned                     
                 direction: AtoB                          
           display_winsize: 256                           
@@ -33,7 +33,7 @@
                 output_nc: 3                             
                     phase: test                          
                preprocess: resize_and_crop               
-              results_dir: ./results/                    
+              results_dir: ./src/results/                
            serial_batches: False                         
                    suffix:                               
                   verbose: False                         
