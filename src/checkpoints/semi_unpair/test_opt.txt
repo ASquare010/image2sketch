@@ -3,7 +3,7 @@
                batch_size: 4                             
           checkpoints_dir: ./src/checkpoints             
                 crop_size: 512                           
-                 dataroot: src/uploads\dd62bacc-8e94-4bf2-8190-9efe8827a1e8	[default: None]
+                 dataroot: src/uploads\30dae794-734e-43e6-8620-7d5e5306804e	[default: None]
              dataset_mode: unaligned                     
                 direction: AtoB                          
           display_winsize: 256                           

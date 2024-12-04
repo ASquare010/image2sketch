@@ -1,28 +1,27 @@
-import os, uuid, shutil, subprocess
-import zipfile
-from flask import Flask, request, jsonify, render_template,send_from_directory
-from flask_cors import CORS
+import os, uuid, shutil, subprocess,requests
+import zipfile, redis, threading, json, asyncio
+from flask import Flask, send_from_directory
+import redis.asyncio as redis
+from bullmq import Worker
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+redis_conn = redis.from_url('redis://:123456@localhost:6379', decode_responses=True)
+
+INPUT_QUEUE = 'vizcom-image_to_sketch'
+RESULT_QUEUE = 'vizcom-image_to_sketch:result'
 app.config['UPLOAD_FOLDER'] = 'src/uploads'
 app.config['RESULT_FOLDER'] = 'src/results/semi_unpair/dir_free/'
 app.config['DATASET_FOLDER'] = 'src/datasets/ref_unpair/'
 
-# Ensure directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['RESULT_FOLDER'], exist_ok=True)
-
-
 
 def copy_files(source_files, target_folder):
     """
     Copies files manually from source to target folder.
-    
     :param source_files: List of file paths to copy.
     :param target_folder: Path to the destination folder.
     """
-    # Ensure the target directory exists
     os.makedirs(target_folder, exist_ok=True)
 
     for file in source_files:
@@ -33,8 +32,22 @@ def copy_files(source_files, target_folder):
             with open(target_file_path, 'wb') as target:
                 target.write(source.read())
 
+def download_image_and_save(image_url, file_path,name_uuid):
+    """
+    Downloads an image from the given URL and saves it to the specified file path.
 
-def process_uploaded_file(file):
+    Args:
+        image_url (str): The URL of the image to download.
+        file_path (str): The path to save the downloaded image.
+    """
+    response = requests.get(image_url)
+    if response.status_code == 200:
+        full_file_path = os.path.join(file_path, f"{name_uuid}.png")
+        with open(full_file_path, "wb") as file:
+            file.write(response.content)
+
+
+def process_uploaded_file(image_url):
     """
     Handles the processing and organization of an uploaded file, including saving the file and copying associated 
     resources into organized folders.
@@ -47,7 +60,6 @@ def process_uploaded_file(file):
             - root_folder (str): The root folder path where all processed files and folders are stored.
             - name_uuid (str): The unique identifier for the uploaded file batch.
     """
-    # Generate a unique folder name
     name_uuid = str(uuid.uuid4())
     source_dir_b = os.path.join(app.config['DATASET_FOLDER'], 'testB')
     source_dir_c = os.path.join(app.config['DATASET_FOLDER'], 'testC')
@@ -55,18 +67,12 @@ def process_uploaded_file(file):
     target_folder_b = os.path.join(app.config['UPLOAD_FOLDER'], name_uuid, 'testB')
     target_folder_c = os.path.join(app.config['UPLOAD_FOLDER'], name_uuid, 'testC')
 
-    # Create the target folders
     os.makedirs(target_folder_a, exist_ok=True)
     os.makedirs(target_folder_b, exist_ok=True)
     os.makedirs(target_folder_c, exist_ok=True)
 
-    # Save the uploaded file into the 'testA' folder
-    file_extension = os.path.splitext(file.filename)[1] 
-    unique_filename = name_uuid + file_extension
-    file_path = os.path.join(target_folder_a, unique_filename)  # Save in testA folder
-    file.save(file_path)
+    download_image_and_save(image_url, target_folder_a, name_uuid)
 
-    # Define the files to read and copy to testB and testC folders
     read_files_testB = [f'{source_dir_b}/dummy_image.png']
     read_files_testC = [f'{source_dir_c}/styleA.png', f'{source_dir_c}/styleB.png', f'{source_dir_c}/styleC.png']
 
@@ -79,7 +85,6 @@ def process_uploaded_file(file):
 
 
 def get_output_image_path(name_uuid):
-    # Define the paths for the output images
     styleA_path = os.path.join(app.config['RESULT_FOLDER'], 'styleA.png',f'{name_uuid}.png')
     styleB_path = os.path.join(app.config['RESULT_FOLDER'], 'styleB.png',f'{name_uuid}.png')
     styleC_path = os.path.join(app.config['RESULT_FOLDER'], 'styleC.png',f'{name_uuid}.png')
@@ -88,7 +93,6 @@ def get_output_image_path(name_uuid):
 
 
 def create_zip_from_files(files, name_uuid):
-    # Create the ZIP file
     zip_file_path = os.path.join(app.config['RESULT_FOLDER'], f'{name_uuid}_styles.zip')
 
     with zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_DEFLATED) as zip_file:
@@ -106,34 +110,43 @@ def delete_files(files):
     try:
         for file in files:
             if os.path.exists(file):
-                os.remove(file)  # Delete the file after zipping
+                os.remove(file)  
             else:
                 print(f"File not found: {file}")
     except Exception as e:
         print(f"Error deleting files: {str(e)}")
         raise
 
+def download_image(image_url):
+    """
+    Downloads an image from the given URL.
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+    Args:
+        image_url (str): URL of the image to download.
+
+    Returns:
+        bytes: The binary content of the image, or None if the download failed.
+    """
+    try:
+        response = requests.get(image_url, stream=True)
+        response.raise_for_status()  
+        return response.content
+    except requests.RequestException as e:
+        print(f"Error downloading image: {e}")
+        return None
 
 @app.route('/download/<filename>')
 def download_file(filename):
     return send_from_directory(app.config['RESULT_FOLDER'], filename)
 
-@app.route('/process', methods=['POST'])
-def process():
-    if 'image' not in request.files:
-        return jsonify({'error': 'No image file provided'}), 400
+def process_job(job_payload):
+    job_id = job_payload['id']
+    image_url = job_payload['image_url']
+    root_folder, name_uuid = process_uploaded_file(image_url)
 
-    uploaded_file = request.files['image']
-    root_folder, name_uuid = process_uploaded_file(uploaded_file)
-
-    # Run the image processing command
     command = [
-        # r"D:\Git\image2sketch\.venv\Scripts\python.exe", "src/test_dir.py",
-        "python3", "src/test_dir.py",
+        r"D:\Git\image2sketch\.venv\Scripts\python.exe", "src/test_dir.py",
+        # "python3", "src/test_dir.py",
         "--name", "semi_unpair",
         "--model", "unpaired",
         "--epoch", "100",
@@ -144,25 +157,31 @@ def process():
         subprocess.run(command, check=True, capture_output=True, text=True)
         shutil.rmtree(root_folder)
     except subprocess.CalledProcessError as e:
-        return jsonify({'error': f'Command failed: {str(e)}\n{e.stderr}'}), 500
+        print({'error': f'Command failed: {str(e)}\n{e.stderr}'}), 500
         
     files = get_output_image_path(name_uuid)
 
     if all(os.path.exists(file) for file in files):
         zip_file_path = create_zip_from_files(files, name_uuid)
-        
-        # Delete the image files after zipping
-        try:
-            delete_files(files)  # Delete the image files after zipping
-        except Exception as e:
-            return jsonify({'error': f"Failed to delete files: {str(e)}"}), 500
-        
+        delete_files(files)  
         zip_file_url = f'/download/{os.path.basename(zip_file_path)}'
-
-        return jsonify({'zip_file_url': zip_file_url}), 200
+        print(zip_file_url)
+        redis_conn.lpush(RESULT_QUEUE, json.dumps({'id': job_id, 'zip_file_url': zip_file_url}))
     else:
-        return jsonify({'error': 'Output images not found'}), 500
-    
-    
+        redis_conn.lpush(RESULT_QUEUE, json.dumps({'id': job_id, 'error': 'Output images not found'}))
+
+async def worker_process():
+    worker = Worker(INPUT_QUEUE, process_job, {"connection": redis_conn})
+    print("Worker started, listening for jobs...")
+    await worker.run()
+
+def run_flask_with_worker():
+    flask_thread = threading.Thread(target=lambda: app.run(host='0.0.0.0', port=5000, use_reloader=False), daemon=True)
+    flask_thread.start()
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(worker_process())
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    run_flask_with_worker()
+
