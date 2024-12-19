@@ -107,4 +107,4 @@ interface = gr.Interface(
 )
 
 if __name__ == "__main__":
-    interface.launch(server_port=int(GRADIO_SERVER_PORT))
+    interface.launch(server_name="0.0.0.0",share=True,server_port=int(GRADIO_SERVER_PORT))
