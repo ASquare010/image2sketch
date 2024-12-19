@@ -1,14 +1,10 @@
-import os, uuid, shutil, subprocess,requests
-import zipfile, redis, threading, json, asyncio
-from flask import Flask, send_from_directory
-import redis.asyncio as redis
-from bullmq import Worker
+import os, uuid, shutil, subprocess,requests,zipfile
+from flask import Flask, send_from_directory, jsonify,request
+from flask_cors import CORS
 
 app = Flask(__name__)
-redis_conn = redis.from_url('redis://:123456@localhost:6379', decode_responses=True)
+CORS(app)
 
-INPUT_QUEUE = 'vizcom-image_to_sketch'
-RESULT_QUEUE = 'vizcom-image_to_sketch:result'
 app.config['UPLOAD_FOLDER'] = 'src/uploads'
 app.config['RESULT_FOLDER'] = 'src/results/semi_unpair/dir_free/'
 app.config['DATASET_FOLDER'] = 'src/datasets/ref_unpair/'
@@ -46,7 +42,6 @@ def download_image_and_save(image_url, file_path,name_uuid):
         with open(full_file_path, "wb") as file:
             file.write(response.content)
 
-
 def process_uploaded_file(image_url):
     """
     Handles the processing and organization of an uploaded file, including saving the file and copying associated 
@@ -83,14 +78,12 @@ def process_uploaded_file(image_url):
     
     return  root_folder, name_uuid
 
-
 def get_output_image_path(name_uuid):
     styleA_path = os.path.join(app.config['RESULT_FOLDER'], 'styleA.png',f'{name_uuid}.png')
     styleB_path = os.path.join(app.config['RESULT_FOLDER'], 'styleB.png',f'{name_uuid}.png')
     styleC_path = os.path.join(app.config['RESULT_FOLDER'], 'styleC.png',f'{name_uuid}.png')
     
     return [styleA_path, styleB_path, styleC_path]
-
 
 def create_zip_from_files(files, name_uuid):
     zip_file_path = os.path.join(app.config['RESULT_FOLDER'], f'{name_uuid}_styles.zip')
@@ -103,7 +96,6 @@ def create_zip_from_files(files, name_uuid):
             zip_file.write(file, new_name)
             count += 1
     return zip_file_path
-
 
 def delete_files(files):
     """Deletes the specified files from the filesystem."""
@@ -135,18 +127,23 @@ def download_image(image_url):
         print(f"Error downloading image: {e}")
         return None
 
+@app.route("/")
+def home():
+    return "Flask App is Running!", 200
+
 @app.route('/download/<filename>')
 def download_file(filename):
     return send_from_directory(app.config['RESULT_FOLDER'], filename)
 
-def process_job(job_payload):
-    job_id = job_payload['id']
-    image_url = job_payload['image_url']
-    root_folder, name_uuid = process_uploaded_file(image_url)
+@app.post("/process_image")
+def process_job():
+
+    imageUrl = request.json.get('imageUrl')
+    root_folder, name_uuid = process_uploaded_file(imageUrl)
 
     command = [
-        r"D:\Git\image2sketch\.venv\Scripts\python.exe", "src/test_dir.py",
-        # "python3", "src/test_dir.py",
+        # r"D:\Git\image2sketch\.venv\Scripts\python.exe", "src/test_dir.py",
+        "python3", "src/test_dir.py",
         "--name", "semi_unpair",
         "--model", "unpaired",
         "--epoch", "100",
@@ -165,23 +162,11 @@ def process_job(job_payload):
         zip_file_path = create_zip_from_files(files, name_uuid)
         delete_files(files)  
         zip_file_url = f'/download/{os.path.basename(zip_file_path)}'
-        print(zip_file_url)
-        redis_conn.lpush(RESULT_QUEUE, json.dumps({'id': job_id, 'zip_file_url': zip_file_url}))
+        return jsonify({'zipFileUrl': zip_file_url}), 200
     else:
-        redis_conn.lpush(RESULT_QUEUE, json.dumps({'id': job_id, 'error': 'Output images not found'}))
-
-async def worker_process():
-    worker = Worker(INPUT_QUEUE, process_job, {"connection": redis_conn})
-    print("Worker started, listening for jobs...")
-    await worker.run()
-
-def run_flask_with_worker():
-    flask_thread = threading.Thread(target=lambda: app.run(host='0.0.0.0', port=5000, use_reloader=False), daemon=True)
-    flask_thread.start()
-
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(worker_process())
-
+        return jsonify({'error': 'Output files not found'}), 404
+    
+   
 if __name__ == '__main__':
-    run_flask_with_worker()
+    app.run(host='0.0.0.0', port=5000)
 
