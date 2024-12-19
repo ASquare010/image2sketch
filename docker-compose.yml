@@ -1,42 +1,8 @@
 version: '3.9'
 
-name: vizcom
+name: A_Square
 
 services:
-  gradio-ui:
-    build:
-      context: ./gradio_ui/
-      dockerfile: Dockerfile
-    container_name: gradio-ui
-    environment:
-      - IMAGE2SKETCH_JOB_URL=http://image2sketch-job-scheduler:5050
-      - IMAGE2SKETCH_URL=http://image2sketch:5000
-      - GRADIO_SERVER_PORT=8073
-    ports:
-      - "8073:8073"
-    networks:
-      - image2sketch_network
-    depends_on:
-      - image2sketch-job-scheduler
-
-  image2sketch-job-scheduler:
-    build:
-      context: ./job-scheduler/
-      dockerfile: Dockerfile
-    container_name: image2sketch-job-scheduler
-    environment:
-      - REDIS_PORT=6379
-      - CELERY_BROKER_URL=redis://localhost:6379/0
-      - CELERY_BACKEND_URL=redis://localhost:6379/1
-      - IMAGE2SKETCH_URL=http://image2sketch:5000
-    ports:
-      - "5050:5050"
-    networks:
-      - image2sketch_network
-    depends_on:
-      - image2sketch
-  
-  
   image2sketch:
     build:
       context: .
@@ -46,9 +12,7 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     ports:
-      - "5000:5000"
-    networks:
-      - image2sketch_network
+      - "8073:8073"
     deploy:
         resources:
           reservations:
@@ -56,8 +20,3 @@ services:
               - driver: nvidia
                 device_ids: ['0']
                 capabilities: [gpu]
-  
-
-networks:
-  image2sketch_network:
-    driver: bridge

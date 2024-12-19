@@ -2,10 +2,10 @@
 
 This repository takes an image as input and outputs a greyscale "sketch" of the image. It provides a web-based HTML endpoint for easy testing.
 
-## Features
+## This branch is a standaloe app
 
 - Converts the image to a greyscale sketch.
-- Downloads processed images as a ZIP file.
+- Using Gradio
 - Gpu docker container setup
 
 # Architecture
@@ -13,18 +13,9 @@ This repository takes an image as input and outputs a greyscale "sketch" of the 
 ![Alt text](assets/1.png)
 ![Alt text](assets/2.png)
 
-# Flask-endpoint API Endpoints
+# UI 
 
-## 2. `/process` (POST)
-
-- **Description**: Accepts an image file, processes it, and returns a URL to download the resulting `.zip` file.
-- **Request**:
-  - **Method**: `POST`
-  - **Body**: `{"imageUrl": "https://example.com/image.jpg"}`
-- **Response**:
-  ```json
-  { "zipFileUrl": "/download/<generated-zip-file-name>.zip" }
-  ```
+![Alt text](assets/3.png)
 
 ## Source
 
@@ -35,5 +26,5 @@ This repository is a clone of [https://github.com/Chanuku/semi_ref2sketch_code](
 ```bash
 Run Docker Container:
 - docker build -t img2sketch .
-- docker run --gpus all -p 5000:5000 -it img2sketch
+- docker run --gpus all -p 8073:8073 -it img2sketch
 ```
