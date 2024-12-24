@@ -29,15 +29,3 @@
 
 ![Alt text](../assets/3.png)
 ![Alt text](../assets/4.png)
-
-
-Jot something down
-
-
-
-
-
-
-
-
-
