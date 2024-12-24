@@ -13,6 +13,11 @@ This repository takes an image as input and outputs a greyscale "sketch" of the 
 ![Alt text](assets/1.png)
 ![Alt text](assets/2.png)
 
+# Ui Sample
+**Gradio_Ui samples**
+![Alt text](../assets/3.png)
+![Alt text](../assets/4.png)
+
 # Flask-endpoint API Endpoints
 
 ## 2. `/process` (POST)
