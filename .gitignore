@@ -5,7 +5,6 @@ $py.class
 
 # C extensions
 .so
-src/
 # Distribution  packaging
 .Python
 build
