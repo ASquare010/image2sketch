@@ -1,6 +1,6 @@
 # Greyscale Image Processor (Sketch Generator)
 
-This repository takes an image as input and outputs a greyscale "sketch" of the image. It provides a web-based HTML endpoint for easy testing.
+This repository takes an image as input and outputs a greyscale "sketch" of the image. It provides a Gradio based Ui and FastApi jobScheduler endpoint.
 
 ## Features
 
