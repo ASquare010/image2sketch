@@ -35,7 +35,19 @@ This repository takes an image as input and outputs a greyscale "sketch" of the 
 
 This repository is a clone of [https://github.com/Chanuku/semi_ref2sketch_code](https://github.com/Chanuku/semi_ref2sketch_code).
 
-## How to Run
+# Dependent services
+
+**This must be in docker-compose.yml other can be commented out**
+
+- image2sketch-job-scheduler
+- image2sketch
+- image2sketch_network
+
+# How to Run
+
+`docker-compose up --build`
+
+## How to Run single Container
 
 ```bash
 Run Docker Container:
